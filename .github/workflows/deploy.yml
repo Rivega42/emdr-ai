@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    name: Setup and Deploy EMDR-AI
+    name: Deploy EMDR-AI
     steps:
       - uses: actions/checkout@v4
       
@@ -18,11 +18,10 @@ jobs:
           node-version: '20'
           
       - name: Install dependencies
-        run: npm ci
-        
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
-        
+        run: |
+          npm install
+          npm install -g wrangler@latest
+          
       # Create infrastructure (will skip if already exists)
       - name: Create D1 Database
         continue-on-error: true
@@ -30,7 +29,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          wrangler d1 create emdr-ai-db --experimental-backend
+          wrangler d1 create emdr-ai-db || echo "D1 database might already exist"
           
       - name: Create KV Namespace
         continue-on-error: true
@@ -38,7 +37,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          wrangler kv:namespace create SESSIONS
+          wrangler kv:namespace create SESSIONS || echo "KV namespace might already exist"
           
       - name: Create R2 Bucket
         continue-on-error: true
@@ -46,23 +45,32 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          wrangler r2 bucket create emdr-ai-storage
+          wrangler r2 bucket create emdr-ai-storage || echo "R2 bucket might already exist"
           
-      - name: Build application
-        run: npm run build
+      - name: Build Next.js application
+        run: |
+          npx next build
         env:
           NEXT_PUBLIC_API_URL: https://emdr-ai-api.rivega42.workers.dev
           
       - name: Deploy API to Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler deploy --config wrangler.toml
+          
+      - name: Create Pages project
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler pages project create emdr-ai --production-branch main || echo "Pages project might already exist"
           
       - name: Deploy Frontend to Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy out --project-name=emdr-ai
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler pages deploy out --project-name=emdr-ai --commit-dirty=true
