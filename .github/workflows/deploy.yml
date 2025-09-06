@@ -18,23 +18,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
       
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Next.js app
+        run: |
+          npm run build
+          npm run export
       
       - name: Deploy to Cloudflare Pages
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          # Create or update the Pages project
-          npx wrangler pages project create emdr-ai --production-branch main || true
-          
-          # Deploy the site
-          npx wrangler pages deploy . --project-name emdr-ai --branch main
-      
-      - name: Get deployment URL
-        run: |
-          echo "🎉 Deployment complete!"
-          echo "🌐 Your site should be available at: https://emdr-ai.pages.dev"
-          echo "📝 Check the deployment status at: https://dash.cloudflare.com/?to=/:account/pages/view/emdr-ai"
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: emdr-ai
+          directory: out
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: '3'
