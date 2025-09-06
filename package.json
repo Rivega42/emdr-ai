@@ -1,26 +1,29 @@
 {
   "name": "emdr-ai",
   "version": "1.0.0",
-  "description": "EMDR-AI Therapy Assistant - Adaptive Virtual Therapy Platform",
+  "private": true,
   "scripts": {
-    "dev": "npx http-server -p 8080",
-    "build": "echo 'No build required for static site'",
-    "deploy": "echo 'Deploy via GitHub Actions'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "export": "next export",
+    "deploy": "npm run build && npm run export"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Rivega42/emdr-ai.git"
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "framer-motion": "^10.16.16",
+    "lucide-react": "^0.294.0"
   },
-  "keywords": [
-    "EMDR",
-    "therapy",
-    "mental-health",
-    "cloudflare",
-    "pwa"
-  ],
-  "author": "Roman Gudkov",
-  "license": "MIT",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
   }
 }
