@@ -358,145 +358,353 @@
         </div>
     </div>
     
-    <script type="module">
-        import { EMDRPatterns } from './src/patterns/emdr-patterns.js';
-        
-        // Initialize canvas
-        const canvas = document.getElementById('emdrCanvas');
-        const resizeCanvas = () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = 400;
-        };
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        
-        // Initialize EMDR system
-        const emdr = new EMDRPatterns(canvas, {
-            speed: 1.0,
-            size: 30,
-            color: '#4CAF50',
-            pattern: 'horizontal',
-            trail: true
-        });
-        
-        // Session timer
-        let sessionStartTime = null;
-        let sessionTimer = null;
-        
-        const updateSessionTime = () => {
-            if (sessionStartTime) {
-                const elapsed = Date.now() - sessionStartTime;
-                const minutes = Math.floor(elapsed / 60000);
-                const seconds = Math.floor((elapsed % 60000) / 1000);
-                document.getElementById('sessionTime').textContent = 
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    <script>
+        // EMDR Patterns Class (inline version)
+        class EMDRPatterns {
+            constructor(canvas, options = {}) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.options = {
+                    speed: options.speed || 1.0,
+                    size: options.size || 30,
+                    color: options.color || '#4CAF50',
+                    pattern: options.pattern || 'horizontal',
+                    trail: options.trail !== undefined ? options.trail : true,
+                    ...options
+                };
+                this.time = 0;
+                this.isRunning = false;
+                this.trail = [];
             }
-        };
-        
-        // Control bindings
-        document.getElementById('startBtn').addEventListener('click', () => {
-            emdr.start();
-            if (!sessionStartTime) {
-                sessionStartTime = Date.now();
-                sessionTimer = setInterval(updateSessionTime, 1000);
+
+            getPosition(pattern, time, size) {
+                const effectiveTime = time * this.options.speed;
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                
+                switch(pattern) {
+                    case 'horizontal':
+                        return [
+                            centerX + Math.sin(effectiveTime) * size * 5,
+                            centerY,
+                            0
+                        ];
+                        
+                    case 'infinity':
+                        return [
+                            centerX + Math.sin(effectiveTime) * size * 5,
+                            centerY + Math.sin(effectiveTime * 2) * size * 2.5,
+                            0
+                        ];
+                        
+                    case 'diagonal':
+                        return [
+                            centerX + Math.sin(effectiveTime) * size * 4,
+                            centerY + Math.cos(effectiveTime) * size * 3,
+                            0
+                        ];
+                        
+                    case 'circular':
+                        return [
+                            centerX + Math.cos(effectiveTime) * size * 4,
+                            centerY + Math.sin(effectiveTime) * size * 4,
+                            0
+                        ];
+                        
+                    case 'butterfly':
+                        const butterflyScale = size * 0.1;
+                        return [
+                            centerX + Math.sin(effectiveTime) * Math.cos(effectiveTime) * size * 5,
+                            centerY + Math.sin(effectiveTime) * Math.sin(effectiveTime) * size * 3,
+                            Math.sin(effectiveTime * 3) * butterflyScale
+                        ];
+                        
+                    case 'spiral':
+                        const radius = (Math.sin(effectiveTime / 3) + 1) * size * 3;
+                        return [
+                            centerX + Math.cos(effectiveTime * 3) * radius,
+                            centerY + Math.sin(effectiveTime * 3) * radius,
+                            radius / 100
+                        ];
+                        
+                    case 'wave':
+                        return [
+                            centerX + (effectiveTime % (Math.PI * 2) - Math.PI) * size * 3,
+                            centerY + Math.sin(effectiveTime * 2) * size * 2,
+                            Math.cos(effectiveTime) * size * 0.05
+                        ];
+                        
+                    case 'figure8':
+                        const t = effectiveTime;
+                        return [
+                            centerX + Math.sin(t) * size * 4,
+                            centerY + Math.sin(t * 2) / 2 * size * 4,
+                            0
+                        ];
+                        
+                    default:
+                        return [centerX, centerY, 0];
+                }
             }
-            console.log('Session started');
-        });
-        
-        document.getElementById('pauseBtn').addEventListener('click', () => {
-            emdr.pause();
-            console.log('Session paused');
-        });
-        
-        document.getElementById('stopBtn').addEventListener('click', () => {
-            emdr.stop();
-            sessionStartTime = null;
-            clearInterval(sessionTimer);
-            document.getElementById('sessionTime').textContent = '00:00';
-            console.log('Session stopped');
-        });
-        
-        // Pattern selection
-        document.getElementById('patternSelect').addEventListener('change', (e) => {
-            emdr.setPattern(e.target.value);
-        });
-        
-        // Speed control
-        document.getElementById('speedSlider').addEventListener('input', (e) => {
-            const speed = parseFloat(e.target.value);
-            emdr.setSpeed(speed);
-            document.getElementById('speedValue').textContent = speed.toFixed(1) + ' Hz';
-        });
-        
-        // Size control
-        document.getElementById('sizeSlider').addEventListener('input', (e) => {
-            const size = parseInt(e.target.value);
-            emdr.setSize(size);
-            document.getElementById('sizeValue').textContent = size + ' px';
-        });
-        
-        // Color selection
-        document.getElementById('colorSelect').addEventListener('change', (e) => {
-            emdr.setColor(e.target.value);
-        });
-        
-        // Trail toggle
-        document.getElementById('trailToggle').addEventListener('change', (e) => {
-            emdr.options.trail = e.target.checked;
-        });
-        
-        // Simulated emotion tracking (replace with real MorphCast integration)
-        let emotionSimulation = null;
-        const simulateEmotions = () => {
-            if (emdr.isRunning) {
-                const stress = (Math.random() * 0.5 + 0.3).toFixed(2);
-                const engagement = (Math.random() * 0.3 + 0.6).toFixed(2);
-                const positivity = (Math.random() * 0.3 + 0.5).toFixed(2);
+
+            drawObject(x, y, z) {
+                const ctx = this.ctx;
+                const baseSize = this.options.size;
+                const size = baseSize * (1 + z * 0.1);
                 
-                document.getElementById('stressLevel').textContent = stress;
-                document.getElementById('engagementLevel').textContent = engagement;
-                document.getElementById('positivityLevel').textContent = positivity;
+                // Clear canvas
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 
-                // Adaptive adjustment
-                emdr.adjustToEmotionalState({
-                    stress: parseFloat(stress),
-                    engagement: parseFloat(engagement),
-                    anxiety: 1 - parseFloat(positivity)
+                // Draw trail effect
+                if (this.options.trail) {
+                    this.drawTrail(x, y);
+                }
+                
+                // Draw glow effect
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
+                gradient.addColorStop(0, this.options.color + '40');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw main object
+                ctx.fillStyle = this.options.color;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw inner highlight
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x - size/3, y - size/3, size/3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawTrail(x, y) {
+                this.trail.push({ x, y, time: Date.now() });
+                
+                // Remove old trail points
+                const now = Date.now();
+                this.trail = this.trail.filter(point => now - point.time < 500);
+                
+                // Draw trail
+                this.trail.forEach((point, index) => {
+                    const age = (now - point.time) / 500;
+                    const opacity = (1 - age) * 0.3;
+                    const size = this.options.size * (1 - age * 0.5);
+                    
+                    this.ctx.fillStyle = this.options.color + Math.floor(opacity * 255).toString(16).padStart(2, '0');
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
                 });
             }
-        };
-        
-        setInterval(simulateEmotions, 2000);
-        
-        // Pattern preview thumbnails
-        const patterns = [
-            { id: 'horizontal', icon: '↔️' },
-            { id: 'infinity', icon: '∞' },
-            { id: 'butterfly', icon: '🦋' },
-            { id: 'spiral', icon: '🌀' },
-            { id: 'wave', icon: '〰️' },
-            { id: 'circular', icon: '⭕' },
-            { id: 'diagonal', icon: '↗️' },
-            { id: 'figure8', icon: '8️⃣' }
-        ];
-        
-        const previewContainer = document.getElementById('patternPreview');
-        patterns.forEach(pattern => {
-            const thumb = document.createElement('div');
-            thumb.className = 'pattern-thumb';
-            thumb.textContent = pattern.icon;
-            thumb.title = pattern.id;
-            thumb.addEventListener('click', () => {
-                document.getElementById('patternSelect').value = pattern.id;
-                emdr.setPattern(pattern.id);
-                document.querySelectorAll('.pattern-thumb').forEach(t => t.classList.remove('active'));
-                thumb.classList.add('active');
+
+            animate() {
+                if (!this.isRunning) return;
+                
+                this.time += 0.016;
+                const [x, y, z] = this.getPosition(this.options.pattern, this.time, 100);
+                this.drawObject(x, y, z);
+                
+                requestAnimationFrame(() => this.animate());
+            }
+
+            start() {
+                this.isRunning = true;
+                this.animate();
+            }
+
+            pause() {
+                this.isRunning = false;
+            }
+
+            stop() {
+                this.isRunning = false;
+                this.time = 0;
+                this.trail = [];
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            setPattern(pattern) {
+                this.options.pattern = pattern;
+            }
+
+            setSpeed(speed) {
+                this.options.speed = speed;
+            }
+
+            setColor(color) {
+                this.options.color = color;
+            }
+
+            setSize(size) {
+                this.options.size = size;
+            }
+
+            adjustToEmotionalState(emotionData) {
+                if (emotionData.stress > 0.7) {
+                    this.options.speed *= 0.8;
+                    this.options.color = '#6B8EAF';
+                }
+                
+                if (emotionData.engagement < 0.3) {
+                    const patterns = ['horizontal', 'infinity', 'butterfly', 'spiral', 'wave', 'circular'];
+                    const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
+                    this.setPattern(randomPattern);
+                    this.options.speed *= 1.1;
+                }
+                
+                if (emotionData.anxiety > 0.6) {
+                    const smoothPatterns = ['wave', 'infinity', 'circular'];
+                    const currentIndex = smoothPatterns.indexOf(this.options.pattern);
+                    if (currentIndex === -1) {
+                        this.setPattern(smoothPatterns[0]);
+                    }
+                }
+            }
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize canvas
+            const canvas = document.getElementById('emdrCanvas');
+            const resizeCanvas = () => {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = 400;
+            };
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Initialize EMDR system
+            const emdr = new EMDRPatterns(canvas, {
+                speed: 1.0,
+                size: 30,
+                color: '#4CAF50',
+                pattern: 'horizontal',
+                trail: true
             });
-            previewContainer.appendChild(thumb);
+            
+            // Session timer
+            let sessionStartTime = null;
+            let sessionTimer = null;
+            
+            const updateSessionTime = () => {
+                if (sessionStartTime) {
+                    const elapsed = Date.now() - sessionStartTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('sessionTime').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            };
+            
+            // Control bindings
+            document.getElementById('startBtn').addEventListener('click', () => {
+                emdr.start();
+                if (!sessionStartTime) {
+                    sessionStartTime = Date.now();
+                    sessionTimer = setInterval(updateSessionTime, 1000);
+                }
+                console.log('Session started');
+            });
+            
+            document.getElementById('pauseBtn').addEventListener('click', () => {
+                emdr.pause();
+                console.log('Session paused');
+            });
+            
+            document.getElementById('stopBtn').addEventListener('click', () => {
+                emdr.stop();
+                sessionStartTime = null;
+                clearInterval(sessionTimer);
+                document.getElementById('sessionTime').textContent = '00:00';
+                console.log('Session stopped');
+            });
+            
+            // Pattern selection
+            document.getElementById('patternSelect').addEventListener('change', (e) => {
+                emdr.setPattern(e.target.value);
+            });
+            
+            // Speed control
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                const speed = parseFloat(e.target.value);
+                emdr.setSpeed(speed);
+                document.getElementById('speedValue').textContent = speed.toFixed(1) + ' Hz';
+            });
+            
+            // Size control
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                const size = parseInt(e.target.value);
+                emdr.setSize(size);
+                document.getElementById('sizeValue').textContent = size + ' px';
+            });
+            
+            // Color selection
+            document.getElementById('colorSelect').addEventListener('change', (e) => {
+                emdr.setColor(e.target.value);
+            });
+            
+            // Trail toggle
+            document.getElementById('trailToggle').addEventListener('change', (e) => {
+                emdr.options.trail = e.target.checked;
+            });
+            
+            // Simulated emotion tracking
+            const simulateEmotions = () => {
+                if (emdr.isRunning) {
+                    const stress = (Math.random() * 0.5 + 0.3).toFixed(2);
+                    const engagement = (Math.random() * 0.3 + 0.6).toFixed(2);
+                    const positivity = (Math.random() * 0.3 + 0.5).toFixed(2);
+                    
+                    document.getElementById('stressLevel').textContent = stress;
+                    document.getElementById('engagementLevel').textContent = engagement;
+                    document.getElementById('positivityLevel').textContent = positivity;
+                    
+                    // Adaptive adjustment
+                    emdr.adjustToEmotionalState({
+                        stress: parseFloat(stress),
+                        engagement: parseFloat(engagement),
+                        anxiety: 1 - parseFloat(positivity)
+                    });
+                }
+            };
+            
+            setInterval(simulateEmotions, 2000);
+            
+            // Pattern preview thumbnails
+            const patterns = [
+                { id: 'horizontal', icon: '↔️' },
+                { id: 'infinity', icon: '∞' },
+                { id: 'butterfly', icon: '🦋' },
+                { id: 'spiral', icon: '🌀' },
+                { id: 'wave', icon: '〰️' },
+                { id: 'circular', icon: '⭕' },
+                { id: 'diagonal', icon: '↗️' },
+                { id: 'figure8', icon: '8️⃣' }
+            ];
+            
+            const previewContainer = document.getElementById('patternPreview');
+            patterns.forEach(pattern => {
+                const thumb = document.createElement('div');
+                thumb.className = 'pattern-thumb';
+                thumb.textContent = pattern.icon;
+                thumb.title = pattern.id;
+                thumb.addEventListener('click', () => {
+                    document.getElementById('patternSelect').value = pattern.id;
+                    emdr.setPattern(pattern.id);
+                    document.querySelectorAll('.pattern-thumb').forEach(t => t.classList.remove('active'));
+                    thumb.classList.add('active');
+                });
+                previewContainer.appendChild(thumb);
+            });
+            
+            // Set initial active pattern
+            document.querySelector('.pattern-thumb').classList.add('active');
         });
-        
-        // Set initial active pattern
-        document.querySelector('.pattern-thumb').classList.add('active');
     </script>
 </body>
 </html>
