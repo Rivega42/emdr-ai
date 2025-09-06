@@ -1,0 +1,29 @@
+name = "emdr-ai-api"
+main = "api/index.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# These will be created automatically by GitHub Actions
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "placeholder-will-be-updated"
+preview_id = "preview-sessions"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "emdr-ai-db"
+database_id = "placeholder-will-be-updated"
+
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "emdr-ai-storage"
+
+[build]
+command = ""
+watch_paths = ["api/**/*.js"]
+
+[observability]
+enabled = true
