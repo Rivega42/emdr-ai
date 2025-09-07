@@ -27,24 +27,31 @@ Simply open [https://emdr-ai.pages.dev](https://emdr-ai.pages.dev) in your brows
 git clone https://github.com/Rivega42/emdr-ai.git
 cd emdr-ai
 
-# Open in browser
-open index.html
-# or use a local server
-npx http-server -p 8080
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
 ```
 
 ## 🎮 How to Use
 
-1. **Select a Pattern**: Choose from 8 different movement patterns
-2. **Adjust Speed**: Use the slider to control movement speed (0.3 - 2.0 Hz)
-3. **Customize Visuals**: Pick your preferred color theme and object size
-4. **Start Session**: Click "Start" to begin the EMDR session
-5. **Monitor Progress**: Watch the emotional state panel for real-time feedback
+1. **Register/Login**: Create an account or use demo credentials
+2. **Select a Pattern**: Choose from 8 different movement patterns
+3. **Adjust Speed**: Use the slider to control movement speed (0.3 - 2.0 Hz)
+4. **Customize Visuals**: Pick your preferred color theme and object size
+5. **Start Session**: Click "Start" to begin the EMDR session
+6. **Monitor Progress**: Watch the emotional state panel for real-time feedback
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: Pure HTML5, CSS3, JavaScript (ES6)
-- **Animation**: Canvas API
+- **Frontend**: Next.js 14, React 18
+- **Styling**: Tailwind CSS
+- **Animation**: Framer Motion, Canvas API
+- **Authentication**: Local Storage (demo mode)
 - **Hosting**: Cloudflare Pages
 - **CI/CD**: GitHub Actions
 - **Future Integration**: MorphCast SDK for real emotion recognition
@@ -53,14 +60,16 @@ npx http-server -p 8080
 
 ```
 emdr-ai/
-├── index.html           # Main application file
-├── src/
-│   └── patterns/
-│       └── emdr-patterns.js  # EMDR pattern algorithms
+├── app/                 # Next.js App Router
+│   ├── page.js         # Landing page
+│   ├── login/          # Login page
+│   ├── register/       # Registration page
+│   └── therapy/        # Therapy session page
+├── public/             # Static assets
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml   # Automated deployment
-└── README.md           # This file
+│       └── deploy.yml  # Automated deployment
+└── README.md          # This file
 ```
 
 ## 🔬 EMDR Patterns Explained
@@ -94,4 +103,4 @@ This application is for educational and research purposes only. It is not a repl
 
 ---
 
-**Status**: ✅ Active | **Version**: 1.0.0 | **Last Updated**: September 2025
+**Status**: ✅ Active | **Version**: 2.0.0 | **Last Updated**: September 2025
