@@ -5,14 +5,14 @@ const nextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
-  // Директория для статического экспорта
-  distDir: '.next',
-  // Для Cloudflare Pages
+  // Отключаем функции, которые не работают со статическим экспортом
   experimental: {
     // Отключаем App Router features которые не работают со static export
   },
-  // Убеждаемся, что middleware правильно обрабатывается
-  skipMiddlewareUrlNormalize: true,
+  // Убираем middleware для статического экспорта
+  skipTrailingSlashRedirect: true,
+  // Директория для статического экспорта
+  distDir: '.next',
 }
 
 module.exports = nextConfig
