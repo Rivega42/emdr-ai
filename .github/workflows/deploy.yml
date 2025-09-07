@@ -20,12 +20,10 @@ jobs:
           node-version: '20'
       
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
       
       - name: Build Next.js app
-        run: |
-          npm run build
-          npm run export
+        run: npm run build
       
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
