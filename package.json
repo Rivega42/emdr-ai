@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:check": "next build && ls -la out/",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "export": "next build"
   },
   "dependencies": {
     "next": "14.0.4",
